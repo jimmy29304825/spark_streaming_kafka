@@ -1,0 +1,9 @@
+cnxn=pyodbc.connect("DSN=SpliceODBC64") 
+Call sql command 
+cursor=cnxn.cursor() 
+sql = "create table longdb.music_rating(new_user_ID int not null, new_song_ID int not null, rating int not null)" 
+# Run sql command 
+cursor.execute
+cnxn.commit()  
+cursor.close()
+cnxn.close()

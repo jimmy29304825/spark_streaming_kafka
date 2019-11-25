@@ -1,0 +1,8 @@
+# create topic for user rating
+bin/kafka-topics.sh --zookeeper localhost:2182 --create --topic rate_test --partitions 3 --replication-factor 3
+
+# create topic for music list
+bin/kafka-topics.sh --zookeeper localhost:2182 --create --topic music_test --partitions 3 --replication-factor 3
+
+# run streaming
+spark-submit --master spark://quickstart.cloudera:7077 --packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.4.4 kafka_stream_test.py

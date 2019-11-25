@@ -1,0 +1,43 @@
+    model_path = "/home/cloudera/Desktop/datasets/music/music_lens_als"
+    same_model = MatrixFactorizationModel.load(sc, model_path)
+    # load data
+    complete_ratings_raw_data = sc.textFile("/home/cloudera/Desktop/datasets/music/ff2_data.csv")
+    # set column names
+    complete_ratings_raw_data_header = complete_ratings_raw_data.take(1)[0]
+    # transfer data
+    ## 1. filiter: remove first row
+    ## 2. map: split data by ","
+    ## 3. map: get first 3 columns
+    complete_ratings_data = complete_ratings_raw_data.filter(lambda line: line!=complete_ratings_raw_data_header).map(lambda line: line.split(",")).map(lambda tokens: (int(tokens[0]),int(tokens[1]),float(tokens[2]))).cache()
+    print("There are %s recommendations in the complete dataset" % (complete_ratings_data.count()))
+    
+    seed = 5
+    iterations = 10
+    regularization_parameter = 0.1
+    ranks = [4, 8, 12]
+    errors = [0, 0, 0]
+    err = 0
+    tolerance = 0.02
+    min_error = float('inf')
+    best_rank = 4
+    best_iteration = -1
+    
+    # load music neta data
+    complete_music_raw_data = sc.textFile("/home/cloudera/Desktop/datasets/music/songs_metadata_file_new.csv")
+    complete_music_raw_data_header = complete_music_raw_data.take(1)[0]
+    complete_music_data = complete_music_raw_data.filter(lambda line: line!=complete_music_raw_data_header).map(lambda line: line.split(",")).map(lambda tokens: (int(tokens[0]),tokens[1],tokens[2],tokens[3])).cache()
+    complete_music_titles = complete_music_data.map(lambda x: (int(x[0]),x[1], x[2]))
+    print("There are %s musics in the complete dataset" % (complete_music_titles.count()))
+    
+    # join data's def
+    def get_counts_and_averages(ID_and_ratings_tuple):
+        nratings = len(ID_and_ratings_tuple[1])
+        return ID_and_ratings_tuple[0], (nratings, float(sum(x for x in ID_and_ratings_tuple[1]))/nratings)
+
+    # group by every mucis couts data by music id
+    music_ID_with_ratings_RDD = (complete_ratings_data.map(lambda x: (x[1], x[2])).groupByKey())
+    # get average and counts for each music 
+    music_ID_with_avg_ratings_RDD = music_ID_with_ratings_RDD.map(get_counts_and_averages)
+    # get counts for each music 
+    music_rating_counts_RDD = music_ID_with_avg_ratings_RDD.map(lambda x: (x[0], x[1][0]))    
+

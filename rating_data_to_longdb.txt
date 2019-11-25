@@ -1,0 +1,60 @@
+import pyodbc
+import pandas as pd
+
+cnxn=pyodbc.connect("DSN=SpliceODBC64") 
+cursor=cnxn.cursor() 
+sql = "create table longdb.music_rating(new_user_ID int not null, new_song_ID int not null, rating int not null)" 
+cursor.execute(sql)
+cnxn.commit()  
+cursor.close()
+cnxn.close()
+
+df = pd.read_csv('~/Desktop/datasets/music/ff2_data.csv', encoding='utf-8')
+
+for i in range(len(df)): 
+    cnxn=pyodbc.connect("DSN=SpliceODBC64") 
+    cursor=cnxn.cursor() 
+
+    data = df.iloc[i] 
+    new_user_ID = data['new_user_ID'] 
+    new_song_ID = data['new_song_ID'] 
+    rating = data['rating'] 
+    user_id = data['user_id'] 
+    song_id = data['song_id'] 
+
+    sql = "insert into longdb.music_rating values (" + str(new_user_ID) + ", " + str(new_song_ID) + ", " + str(rating) + ")" 
+    cursor.execute(sql)
+
+    cnxn.commit()
+    cursor.close()
+    cnxn.close()
+
+cnxn=pyodbc.connect("DSN=SpliceODBC64") 
+cursor=cnxn.cursor() 
+sql = "create table longdb.music_metadata(new_song_ID int not null,title varchar(100),release varchar(100),artist_name varchar(100),release_year int,song_id varchar(100))"
+cursor.execute(sql)
+cnxn.commit()  
+cursor.close()
+cnxn.close()
+
+df2 = pd.read_csv('~/Desktop/datasets/music/songs_metadata_file_new.csv', encoding='utf-8')
+
+for i in range(len(df2)): 
+    cnxn=pyodbc.connect("DSN=SpliceODBC64") 
+    cursor=cnxn.cursor() 
+
+    data = df2.iloc[i] 
+    new_song_ID = data['new_song_ID']
+    title = data['title'].replace("'", "`")
+    release = data['release'] 
+    artist_name = data['artist_name'] 
+    year = data['year'] 
+    song_id = data['song_id'] 
+
+    sql = "insert into longdb.music_metadata values (" + str(new_song_ID) + ", \"" + str(title) + "\", \"" + str(release) + "\", \""+ str(artist_name) + "\", " + str(year) + ", \"" + str(song_id) + "\")" 
+    print(sql)
+    cursor.execute(sql)
+
+    cnxn.commit()
+    cursor.close()
+    cnxn.close()

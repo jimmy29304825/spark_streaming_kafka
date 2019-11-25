@@ -1,0 +1,28 @@
+        new_user_ID = rdd.map(lambda x: eval(json.loads(x[1]))['userid']).collect()
+        new_user_ratings.append(msgValue)
+        new_user_ratings_RDD = sc.parallelize(new_user_ratings)
+        complete_data_with_new_ratings_RDD = complete_ratings_data.union(new_user_ratings_RDD)
+        # train model again with new data
+        #from time import time
+        #t0 = time()
+        new_ratings_model = ALS.train(complete_data_with_new_ratings_RDD, best_rank, seed=seed, iterations=iterations, lambda_=regularization_parameter)
+        #tt = time() - t0
+        # print("New model trained in %s seconds" % round(tt,3))
+    
+        new_user_ratings_ids = map(lambda x: x[1], new_user_ratings) # get just music IDs
+        # keep just those not on the ID list
+        new_user_unrated_music_RDD = (complete_music_data.filter(lambda x: x[0] not in new_user_ratings_ids).map(lambda x: (new_user_ID, x[0])))
+        # Use the input RDD, new_user_unrated_music_RDD, with new_ratings_model.predictAll() to predict new ratings for the musics
+        new_user_recommendations_RDD = new_ratings_model.predictAll(new_user_unrated_music_RDD)
+        # get every predicct result for new user
+        new_user_recommendations_rating_RDD = new_user_recommendations_RDD.map(lambda x: (x.product, x.rating))
+        # merge data with music info
+        new_user_recommendations_rating_title_and_count_RDD = new_user_recommendations_rating_RDD.join(complete_music_titles).join(music_rating_counts_RDD)
+        new_user_recommendations_rating_title_and_count_RDD.take(3)
+        # transfer data format
+        new_user_recommendations_rating_title_and_count_RDD = new_user_recommendations_rating_title_and_count_RDD.map(lambda r: (r[1][0][1], r[1][0][0], r[1][1]))
+        # sort data by rating score and list first 25 data
+        top_musics = new_user_recommendations_rating_title_and_count_RDD.filter(lambda r: r[2]>=25).takeOrdered(25, key=lambda x: -x[1])
+        new_user_ratings = []
+
+        return sc.parallelize(top_musics)
